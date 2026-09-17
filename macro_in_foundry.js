@@ -1,28 +1,30 @@
 // ============================================================
-// PALISADE // CONTROL
-// GM CONTROL PANEL
+// PALISADE // OMNI-NET
+// GM CONTROL MACRO
+//
+// Requires:
+//   palisade-omni-net module
+//
+// Public API:
+//   PalisadeOmniNet.show(state)
+//   PalisadeOmniNet.close()
 // ============================================================
 
 if (!game.user.isGM) {
-
-    ui.notifications.warn(
-        "PALISADE control is GM-only."
-    );
-
+    ui.notifications.warn("PALISADE control is GM-only.");
     return;
 }
 
 
-// ------------------------------------------------------------
-// State
-// ------------------------------------------------------------
+// ============================================================
+// STATE
+// ============================================================
 
 if (!globalThis.PALISADE_STATE) {
 
     globalThis.PALISADE_STATE = {
 
-        title:
-            "PALISADE // OMNI-NET",
+        title: "PALISADE // OMNI-NET",
 
         subtitle:
             "LEGACY EXPERIMENTAL NODE 07",
@@ -61,7 +63,6 @@ if (!globalThis.PALISADE_STATE) {
                 name: "DRAKE",
                 exposure: 0
             }
-
         ]
     };
 }
@@ -71,614 +72,900 @@ const state =
     globalThis.PALISADE_STATE;
 
 
-// ------------------------------------------------------------
-// Existing panel?
-// ------------------------------------------------------------
+// ============================================================
+// REMOVE EXISTING PANEL
+// ============================================================
 
-document
-    .getElementById(
+const existing =
+    document.getElementById(
         "palisade-gm-control"
-    )
-    ?.remove();
+    );
+
+if (existing) {
+    existing.remove();
+}
 
 
-// ------------------------------------------------------------
-// Panel
-// ------------------------------------------------------------
+// ============================================================
+// ROOT
+// ============================================================
 
-const panel =
+const root =
     document.createElement("div");
 
-
-panel.id =
+root.id =
     "palisade-gm-control";
 
+root.innerHTML = `
 
-panel.innerHTML = `
+    <div class="palisade-gm-panel">
 
-<style>
+        <div class="palisade-gm-titlebar">
 
-#palisade-gm-control {
+            <span class="palisade-gm-drag">
+                PALISADE // CONTROL
+            </span>
 
-    position: fixed;
+            <button
+                type="button"
+                class="palisade-gm-close"
+                title="Close control panel"
+            >×</button>
 
-    top: 80px;
+        </div>
 
-    right: 30px;
 
-    width: 360px;
+        <div class="palisade-gm-section">
 
-    z-index: 100001;
+            <div class="palisade-gm-label">
+                CONNECTION
+            </div>
 
-    background: #050505;
+            <div class="palisade-gm-row">
 
-    color: #bbb;
+                <button
+                    type="button"
+                    data-action="link-minus"
+                >−</button>
 
-    border: 1px solid #444;
+                <span
+                    class="palisade-gm-value"
+                    data-value="link"
+                ></span>
 
-    box-shadow:
-        0 0 30px rgba(0,0,0,.8);
+                <button
+                    type="button"
+                    data-action="link-plus"
+                >+</button>
 
-    padding: 18px;
+            </div>
 
-    font-family:
-        "Courier New",
-        monospace;
+        </div>
 
-    font-size: 12px;
-}
 
+        <div class="palisade-gm-section">
 
-#palisade-gm-control h2 {
+            <div class="palisade-gm-label">
+                ACTIVE OPERATOR
+            </div>
 
-    margin: 0 0 4px 0;
+            <select
+                class="palisade-gm-select"
+                data-field="activeOperator"
+            ></select>
 
-    color: #ddd;
+        </div>
 
-    font-size: 15px;
 
-    letter-spacing: 2px;
-}
+        <div class="palisade-gm-section">
 
+            <div class="palisade-gm-label">
+                EXPOSURE
+            </div>
 
-.pgm-sub {
+            <div class="palisade-gm-row">
 
-    color: #666;
+                <button
+                    type="button"
+                    data-action="exposure-minus"
+                >−</button>
 
-    font-size: 9px;
+                <span
+                    class="palisade-gm-value"
+                    data-value="exposure"
+                ></span>
 
-    letter-spacing: 2px;
+                <button
+                    type="button"
+                    data-action="exposure-plus"
+                >+</button>
 
-    margin-bottom: 15px;
-}
+            </div>
 
+        </div>
 
-.pgm-row {
 
-    display: flex;
+        <div class="palisade-gm-section">
 
-    align-items: center;
+            <div class="palisade-gm-label">
+                HANDSHAKE
+            </div>
 
-    gap: 8px;
+            <select
+                class="palisade-gm-select"
+                data-field="handshake"
+            >
 
-    margin: 7px 0;
-}
-
-
-.pgm-label {
-
-    width: 120px;
-
-    color: #777;
-
-    font-size: 10px;
-
-    letter-spacing: 1px;
-}
-
-
-.pgm-value {
-
-    width: 45px;
-
-    text-align: center;
-
-    color: #ddd;
-
-}
-
-
-.pgm-btn {
-
-    cursor: pointer;
-
-    background: #111;
-
-    color: #bbb;
-
-    border: 1px solid #444;
-
-    padding: 3px 9px;
-
-    font-family: inherit;
-}
-
-
-.pgm-btn:hover {
-
-    background: #222;
-
-    color: white;
-}
-
-
-.pgm-input {
-
-    flex: 1;
-
-    background: #080808;
-
-    color: #ccc;
-
-    border: 1px solid #333;
-
-    padding: 5px;
-
-    font-family: inherit;
-}
-
-
-.pgm-select {
-
-    flex: 1;
-
-    background: #080808;
-
-    color: #ccc;
-
-    border: 1px solid #333;
-
-    padding: 5px;
-
-    font-family: inherit;
-}
-
-
-.pgm-divider {
-
-    border-top: 1px solid #222;
-
-    margin: 14px 0;
-}
-
-
-.pgm-action {
-
-    display: flex;
-
-    gap: 8px;
-
-    margin-top: 16px;
-}
-
-
-.pgm-broadcast {
-
-    flex: 1;
-
-    background: #151515;
-
-    color: #ddd;
-
-    border: 1px solid #777;
-
-    padding: 9px;
-
-    cursor: pointer;
-
-    font-family: inherit;
-
-    letter-spacing: 2px;
-}
-
-
-.pgm-close {
-
-    width: 90px;
-
-    background: #080808;
-
-    color: #888;
-
-    border: 1px solid #333;
-
-    cursor: pointer;
-
-    font-family: inherit;
-}
-
-
-.pgm-broadcast:hover,
-.pgm-close:hover {
-
-    background: #222;
-
-    color: white;
-}
-
-</style>
-
-
-<h2>PALISADE // CONTROL</h2>
-
-<div class="pgm-sub">
-GM TERMINAL INTERFACE
-</div>
-
-
-<div class="pgm-divider"></div>
-
-
-<div class="pgm-row">
-
-    <div class="pgm-label">
-        CONNECTION
-    </div>
-
-    <button class="pgm-btn"
-            data-action="link-minus">
-        −
-    </button>
-
-    <div class="pgm-value"
-         id="pgm-link">
-        ${state.link}
-    </div>
-
-    <button class="pgm-btn"
-            data-action="link-plus">
-        +
-    </button>
-
-</div>
-
-
-<div class="pgm-row">
-
-    <div class="pgm-label">
-        OPERATOR
-    </div>
-
-    <select
-        class="pgm-select"
-        id="pgm-operator">
-
-        ${state.operators
-            .map(op => `
-                <option
-                    value="${op.name}"
-                    ${op.name === state.activeOperator
-                        ? "selected"
-                        : ""}>
-                    ${op.name}
+                <option value="STABLE">
+                    STABLE
                 </option>
-            `)
-            .join("")}
 
-    </select>
+                <option value="UNSTABLE">
+                    UNSTABLE
+                </option>
 
-</div>
+                <option value="CRITICAL">
+                    CRITICAL
+                </option>
 
+                <option value="LOST">
+                    LOST
+                </option>
 
-<div class="pgm-divider"></div>
+            </select>
 
-
-<div class="pgm-sub">
-RADIOLARIAN EXPOSURE
-</div>
-
-
-<div id="pgm-exposure"></div>
-
-
-<div class="pgm-divider"></div>
+        </div>
 
 
-<div class="pgm-row">
+        <div class="palisade-gm-section">
 
-    <div class="pgm-label">
-        HANDSHAKE
+            <div class="palisade-gm-label">
+                MESSAGE
+            </div>
+
+            <input
+                type="text"
+                class="palisade-gm-message"
+                data-field="message"
+            />
+
+        </div>
+
+
+        <div class="palisade-gm-actions">
+
+            <button
+                type="button"
+                class="palisade-gm-broadcast"
+                data-action="broadcast"
+            >
+                BROADCAST
+            </button>
+
+            <button
+                type="button"
+                class="palisade-gm-close-terminal"
+                data-action="close-terminal"
+            >
+                CLOSE
+            </button>
+
+        </div>
+
     </div>
-
-    <select
-        class="pgm-select"
-        id="pgm-handshake">
-
-        <option
-            ${state.handshake === "STABLE"
-                ? "selected" : ""}>
-            STABLE
-        </option>
-
-        <option
-            ${state.handshake === "ANOMALOUS"
-                ? "selected" : ""}>
-            ANOMALOUS
-        </option>
-
-        <option
-            ${state.handshake === "CRITICAL"
-                ? "selected" : ""}>
-            CRITICAL
-        </option>
-
-        <option
-            ${state.handshake === "UNKNOWN"
-                ? "selected" : ""}>
-            UNKNOWN
-        </option>
-
-    </select>
-
-</div>
+`;
 
 
-<div class="pgm-row">
+// ============================================================
+// CSS
+// ============================================================
 
-    <div class="pgm-label">
-        MESSAGE
-    </div>
+const style =
+    document.createElement("style");
 
-    <input
-        class="pgm-input"
-        id="pgm-message"
-        value="${state.message.replaceAll('"', '&quot;')}"
-    />
+style.id =
+    "palisade-gm-control-style";
 
-</div>
+style.textContent = `
+
+    #palisade-gm-control {
+
+        position: fixed;
+
+        inset: 0;
+
+        z-index: 100001;
+
+        pointer-events: none;
+
+        font-family:
+            "Courier New",
+            "Liberation Mono",
+            monospace;
+    }
 
 
-<div class="pgm-action">
+    .palisade-gm-panel {
 
-    <button
-        class="pgm-broadcast"
-        data-action="broadcast">
+        position: fixed;
 
-        BROADCAST
+        left: 30px;
 
-    </button>
+        top: 100px;
+
+        width: 270px;
+
+        box-sizing: border-box;
+
+        padding: 14px;
+
+        pointer-events: auto;
+
+        background:
+            radial-gradient(
+                ellipse at center,
+                #111 0%,
+                #050505 70%,
+                #000 100%
+            );
+
+        color: #aaa;
+
+        border: 1px solid #444;
+
+        box-shadow:
+            0 0 30px rgba(0,0,0,.8),
+            inset 0 0 25px rgba(255,255,255,.025);
+
+        letter-spacing: 1px;
+
+        user-select: none;
+    }
 
 
-    <button
-        class="pgm-close"
-        data-action="close">
+    .palisade-gm-titlebar {
 
-        CLOSE
+        display: flex;
 
-    </button>
+        align-items: center;
 
-</div>
+        justify-content: space-between;
+
+        height: 24px;
+
+        margin:
+            -4px
+            -4px
+            12px
+            -4px;
+
+        color: #666;
+
+        font-size: 9px;
+
+        letter-spacing: 2px;
+    }
+
+
+    .palisade-gm-drag {
+
+        flex: 1;
+
+        cursor: move;
+
+        user-select: none;
+    }
+
+
+    .palisade-gm-close {
+
+        width: 24px;
+
+        height: 24px;
+
+        padding: 0;
+
+        border: 0;
+
+        background: transparent;
+
+        color: #666;
+
+        font-family: monospace;
+
+        font-size: 18px;
+
+        line-height: 20px;
+
+        cursor: pointer;
+    }
+
+
+    .palisade-gm-close:hover {
+
+        color: #ddd;
+    }
+
+
+    .palisade-gm-section {
+
+        margin-bottom: 15px;
+    }
+
+
+    .palisade-gm-label {
+
+        margin-bottom: 6px;
+
+        color: #666;
+
+        font-size: 9px;
+
+        letter-spacing: 2px;
+    }
+
+
+    .palisade-gm-row {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 8px;
+    }
+
+
+    .palisade-gm-row button {
+
+        width: 28px;
+
+        height: 25px;
+
+        padding: 0;
+
+        border: 1px solid #444;
+
+        background: #080808;
+
+        color: #aaa;
+
+        font-family: monospace;
+
+        font-size: 15px;
+
+        cursor: pointer;
+    }
+
+
+    .palisade-gm-row button:hover {
+
+        border-color: #777;
+
+        color: #eee;
+    }
+
+
+    .palisade-gm-value {
+
+        flex: 1;
+
+        text-align: center;
+
+        color: #ccc;
+
+        font-size: 12px;
+    }
+
+
+    .palisade-gm-select,
+    .palisade-gm-message {
+
+        width: 100%;
+
+        box-sizing: border-box;
+
+        border: 1px solid #444;
+
+        background: #080808;
+
+        color: #bbb;
+
+        font-family: monospace;
+
+        font-size: 11px;
+
+        padding: 5px 6px;
+
+        outline: none;
+    }
+
+
+    .palisade-gm-select:focus,
+    .palisade-gm-message:focus {
+
+        border-color: #777;
+    }
+
+
+    .palisade-gm-actions {
+
+        display: flex;
+
+        gap: 8px;
+
+        margin-top: 20px;
+    }
+
+
+    .palisade-gm-actions button {
+
+        flex: 1;
+
+        height: 30px;
+
+        border: 1px solid #555;
+
+        background: #090909;
+
+        color: #aaa;
+
+        font-family: monospace;
+
+        font-size: 9px;
+
+        letter-spacing: 1px;
+
+        cursor: pointer;
+    }
+
+
+    .palisade-gm-actions button:hover {
+
+        border-color: #888;
+
+        color: #eee;
+    }
 
 `;
 
-document.body.appendChild(panel);
+document.head.appendChild(style);
+
+document.body.appendChild(root);
 
 
 // ============================================================
-// EXPOSURE UI
+// ELEMENTS
 // ============================================================
 
-function renderExposure() {
+const panel =
+    root.querySelector(
+        ".palisade-gm-panel"
+    );
 
-    const container =
-        panel.querySelector(
-            "#pgm-exposure"
-        );
+const dragHandle =
+    root.querySelector(
+        ".palisade-gm-drag"
+    );
+
+const closeButton =
+    root.querySelector(
+        ".palisade-gm-close"
+    );
+
+const operatorSelect =
+    root.querySelector(
+        '[data-field="activeOperator"]'
+    );
+
+const handshakeSelect =
+    root.querySelector(
+        '[data-field="handshake"]'
+    );
+
+const messageInput =
+    root.querySelector(
+        '[data-field="message"]'
+    );
 
 
-    container.innerHTML =
-        state.operators
-            .map((op, index) => `
+// ============================================================
+// SELECT OPERATORS
+// ============================================================
 
-                <div class="pgm-row">
+operatorSelect.innerHTML =
+    state.operators
+        .map(operator => `
+            <option value="${operator.name}">
+                ${operator.name}
+            </option>
+        `)
+        .join("");
 
-                    <div class="pgm-label">
-                        ${op.name}
-                    </div>
 
-                    <button
-                        class="pgm-btn"
-                        data-exp-minus="${index}">
-                        −
-                    </button>
+// ============================================================
+// ACTIVE OPERATOR INDEX
+// ============================================================
 
-                    <div
-                        class="pgm-value">
-                        ${op.exposure}
-                    </div>
+function getActiveOperator() {
 
-                    <button
-                        class="pgm-btn"
-                        data-exp-plus="${index}">
-                        +
-                    </button>
-
-                </div>
-
-            `)
-            .join("");
+    return state.operators.findIndex(
+        operator =>
+            operator.name ===
+            state.activeOperator
+    );
 }
 
 
-renderExposure();
+function getActiveOperatorData() {
+
+    const index =
+        getActiveOperator();
+
+    if (index < 0) {
+        return null;
+    }
+
+    return state.operators[index];
+}
 
 
 // ============================================================
-// EVENT HANDLERS
+// RENDER PANEL STATE
 // ============================================================
 
-panel.addEventListener(
+function render() {
+
+    root.querySelector(
+        '[data-value="link"]'
+    ).textContent =
+        `${String(state.link).padStart(2, "0")} / ${String(state.maxLink).padStart(2, "0")}`;
+
+
+    const active =
+        getActiveOperatorData();
+
+
+    root.querySelector(
+        '[data-value="exposure"]'
+    ).textContent =
+        active
+            ? String(active.exposure).padStart(2, "0")
+            : "--";
+
+
+    operatorSelect.value =
+        state.activeOperator;
+
+
+    handshakeSelect.value =
+        state.handshake;
+
+
+    messageInput.value =
+        state.message;
+}
+
+
+render();
+
+
+// ============================================================
+// LINK CONTROLS
+// ============================================================
+
+root.querySelector(
+    '[data-action="link-minus"]'
+).addEventListener(
+    "click",
+    () => {
+
+        state.link =
+            Math.max(
+                0,
+                state.link - 1
+            );
+
+        render();
+    }
+);
+
+
+root.querySelector(
+    '[data-action="link-plus"]'
+).addEventListener(
+    "click",
+    () => {
+
+        state.link =
+            Math.min(
+                state.maxLink,
+                state.link + 1
+            );
+
+        render();
+    }
+);
+
+
+// ============================================================
+// OPERATOR
+// ============================================================
+
+operatorSelect.addEventListener(
+    "change",
+    event => {
+
+        state.activeOperator =
+            event.target.value;
+
+        render();
+    }
+);
+
+
+// ============================================================
+// EXPOSURE
+// ============================================================
+
+root.querySelector(
+    '[data-action="exposure-minus"]'
+).addEventListener(
+    "click",
+    () => {
+
+        const active =
+            getActiveOperatorData();
+
+        if (!active) {
+            return;
+        }
+
+        active.exposure =
+            Math.max(
+                0,
+                active.exposure - 1
+            );
+
+        render();
+    }
+);
+
+
+root.querySelector(
+    '[data-action="exposure-plus"]'
+).addEventListener(
+    "click",
+    () => {
+
+        const active =
+            getActiveOperatorData();
+
+        if (!active) {
+            return;
+        }
+
+        active.exposure =
+            Math.min(
+                6,
+                active.exposure + 1
+            );
+
+        render();
+    }
+);
+
+
+// ============================================================
+// HANDSHAKE
+// ============================================================
+
+handshakeSelect.addEventListener(
+    "change",
+    event => {
+
+        state.handshake =
+            event.target.value;
+    }
+);
+
+
+// ============================================================
+// MESSAGE
+// ============================================================
+
+messageInput.addEventListener(
+    "input",
+    event => {
+
+        state.message =
+            event.target.value;
+    }
+);
+
+
+// ============================================================
+// BROADCAST
+// ============================================================
+
+root.querySelector(
+    '[data-action="broadcast"]'
+).addEventListener(
+    "click",
+    () => {
+
+        globalThis.PalisadeOmniNet.show(
+            state
+        );
+    }
+);
+
+
+// ============================================================
+// CLOSE TERMINAL — ALL CLIENTS
+// ============================================================
+
+root.querySelector(
+    '[data-action="close-terminal"]'
+).addEventListener(
+    "click",
+    () => {
+
+        globalThis.PalisadeOmniNet.close();
+    }
+);
+
+
+// ============================================================
+// CLOSE CONTROL PANEL — LOCAL ONLY
+// ============================================================
+
+function closePanel() {
+
+    cleanupDrag();
+
+    document.removeEventListener(
+        "keydown",
+        onKeyDown
+    );
+
+    root.remove();
+
+    const panelStyle =
+        document.getElementById(
+            "palisade-gm-control-style"
+        );
+
+    if (panelStyle) {
+        panelStyle.remove();
+    }
+}
+
+
+closeButton.addEventListener(
     "click",
     event => {
 
-        const button =
-            event.target.closest("button");
+        event.preventDefault();
 
-        if (!button) return;
+        event.stopPropagation();
 
-
-        const action =
-            button.dataset.action;
-
-
-        // ----------------------------------------------------
-        // Link
-        // ----------------------------------------------------
-
-        if (action === "link-minus") {
-
-            state.link =
-                Math.max(
-                    0,
-                    state.link - 1
-                );
-
-            panel.querySelector(
-                "#pgm-link"
-            ).textContent =
-                state.link;
-
-            return;
-        }
-
-
-        if (action === "link-plus") {
-
-            state.link =
-                Math.min(
-                    state.maxLink,
-                    state.link + 1
-                );
-
-            panel.querySelector(
-                "#pgm-link"
-            ).textContent =
-                state.link;
-
-            return;
-        }
-
-
-        // ----------------------------------------------------
-        // Exposure
-        // ----------------------------------------------------
-
-        if (
-            button.dataset.expMinus !==
-            undefined
-        ) {
-
-            const index =
-                Number(
-                    button.dataset.expMinus
-                );
-
-            state.operators[index].exposure =
-                Math.max(
-                    0,
-                    state.operators[index].exposure - 1
-                );
-
-            renderExposure();
-
-            return;
-        }
-
-
-        if (
-            button.dataset.expPlus !==
-            undefined
-        ) {
-
-            const index =
-                Number(
-                    button.dataset.expPlus
-                );
-
-            state.operators[index].exposure =
-                Math.min(
-                    6,
-                    state.operators[index].exposure + 1
-                );
-
-            renderExposure();
-
-            return;
-        }
-
-
-        // ----------------------------------------------------
-        // Broadcast
-        // ----------------------------------------------------
-
-        if (action === "broadcast") {
-
-            state.activeOperator =
-                panel.querySelector(
-                    "#pgm-operator"
-                ).value;
-
-
-            state.handshake =
-                panel.querySelector(
-                    "#pgm-handshake"
-                ).value;
-
-
-            state.message =
-                panel.querySelector(
-                    "#pgm-message"
-                ).value;
-
-
-            if (
-                globalThis.PalisadeOmniNet
-            ) {
-
-                globalThis.PalisadeOmniNet.show(
-                    state
-                );
-
-                ui.notifications.info(
-                    "PALISADE // broadcast sent."
-                );
-
-            } else {
-
-                ui.notifications.error(
-                    "PALISADE module is not initialized."
-                );
-            }
-
-            return;
-        }
-
-
-        // ----------------------------------------------------
-        // Close
-        // ----------------------------------------------------
-
-        if (action === "close") {
-
-            if (
-                globalThis.PalisadeOmniNet
-            ) {
-
-                globalThis.PalisadeOmniNet.close();
-
-            }
-
-            return;
-        }
+        closePanel();
     }
 );
+
+
+// ============================================================
+// ESC — LOCAL PANEL ONLY
+// ============================================================
+
+function onKeyDown(event) {
+
+    if (event.key === "Escape") {
+
+        closePanel();
+    }
+}
+
+document.addEventListener(
+    "keydown",
+    onKeyDown
+);
+
+
+// ============================================================
+// DRAG
+// ============================================================
+
+let dragging = false;
+
+let offsetX = 0;
+let offsetY = 0;
+
+
+dragHandle.addEventListener(
+    "mousedown",
+    event => {
+
+        if (event.button !== 0) {
+            return;
+        }
+
+        const rect =
+            panel.getBoundingClientRect();
+
+
+        panel.style.left =
+            `${rect.left}px`;
+
+        panel.style.top =
+            `${rect.top}px`;
+
+        panel.style.transform =
+            "none";
+
+
+        offsetX =
+            event.clientX - rect.left;
+
+        offsetY =
+            event.clientY - rect.top;
+
+
+        dragging = true;
+
+        event.preventDefault();
+
+        event.stopPropagation();
+    }
+);
+
+
+function onMouseMove(event) {
+
+    if (!dragging) {
+        return;
+    }
+
+    panel.style.left =
+        `${event.clientX - offsetX}px`;
+
+    panel.style.top =
+        `${event.clientY - offsetY}px`;
+}
+
+
+function onMouseUp() {
+
+    dragging = false;
+}
+
+
+document.addEventListener(
+    "mousemove",
+    onMouseMove
+);
+
+document.addEventListener(
+    "mouseup",
+    onMouseUp
+);
+
+
+// ============================================================
+// DRAG CLEANUP
+// ============================================================
+
+function cleanupDrag() {
+
+    dragging = false;
+
+    document.removeEventListener(
+        "mousemove",
+        onMouseMove
+    );
+
+    document.removeEventListener(
+        "mouseup",
+        onMouseUp
+    );
+}
