@@ -4,6 +4,7 @@
  *
  * Foundry VTT 13
  */
+
 let glitchAnimationFrame = null;
 let terminalCleanup = null;
 
@@ -21,7 +22,6 @@ const DEFAULT_STATE = {
     maxLink: 8,
 
     handshake: "STABLE",
-
     activeOperator: "",
 
     message: "CONTINUITY IS A PROCESS.",
@@ -43,6 +43,15 @@ function cloneState(state) {
     return foundry.utils.deepClone(state);
 }
 
+function normalizeState(state) {
+    return foundry.utils.mergeObject(
+        cloneState(DEFAULT_STATE),
+        state ?? {},
+        {
+            inplace: false
+        }
+    );
+}
 
 function escapeHTML(value) {
     return String(value)
@@ -53,9 +62,7 @@ function escapeHTML(value) {
         .replaceAll("'", "&#039;");
 }
 
-
 function exposureBar(value) {
-
     const max = 6;
 
     value = Math.max(
@@ -69,13 +76,17 @@ function exposureBar(value) {
     );
 }
 
-
 function linkBar(link, maxLink) {
-
     const length = 24;
 
+    const safeMax = Number(maxLink) || 1;
+    const safeLink = Math.max(
+        0,
+        Math.min(safeMax, Number(link) || 0)
+    );
+
     const filled = Math.round(
-        (link / maxLink) * length
+        (safeLink / safeMax) * length
     );
 
     return (
@@ -89,25 +100,12 @@ function linkBar(link, maxLink) {
 // PLAYER TERMINAL
 // ============================================================
 
-async function showTerminal(state) {
+function createTerminal(state) {
+    state = normalizeState(state);
 
-    closeTerminal();
+    const root = document.createElement("div");
 
-    state = foundry.utils.mergeObject(
-        cloneState(DEFAULT_STATE),
-        state,
-        {
-            inplace: false
-        }
-    );
-
-
-    const root =
-        document.createElement("div");
-
-    root.id =
-        "palisade-omni-net-terminal";
-
+    root.id = "palisade-omni-net-terminal";
 
     root.innerHTML = `
         <div class="palisade-terminal">
@@ -130,13 +128,9 @@ async function showTerminal(state) {
 
             <div class="palisade-stable">
 
-                <div class="palisade-header">
-                    ${escapeHTML(state.title)}
-                </div>
+                <div class="palisade-header"></div>
 
-                <div class="palisade-subheader">
-                    ${escapeHTML(state.subtitle)}
-                </div>
+                <div class="palisade-subheader"></div>
 
                 <div class="palisade-line"></div>
 
@@ -150,7 +144,7 @@ async function showTerminal(state) {
                 </div>
 
                 <div class="palisade-status">
-                    HANDSHAKE ................. 
+                    HANDSHAKE .................
                     <span class="palisade-handshake"></span>
                 </div>
 
@@ -175,175 +169,17 @@ async function showTerminal(state) {
         </div>
     `;
 
-
     document.body.appendChild(root);
 
-
     // --------------------------------------------------------
-    // Terminal interaction
-    // --------------------------------------------------------
-
-    const terminal =
-        root.querySelector(
-            ".palisade-terminal"
-        );
-
-    const dragHandle =
-        root.querySelector(
-            ".palisade-drag-handle"
-        );
-
-    const closeButton =
-        root.querySelector(
-            ".palisade-close"
-        );
-
-
-    // --------------------------------------------------------
-    // Close button
+    // Style
     // --------------------------------------------------------
 
-    closeButton.addEventListener(
-        "click",
-        event => {
+    const style = document.createElement("style");
 
-            event.preventDefault();
-            event.stopPropagation();
-
-            closeTerminal();
-        }
-    );
-
-
-    // --------------------------------------------------------
-    // Drag
-    // --------------------------------------------------------
-
-    let dragging = false;
-
-    let offsetX = 0;
-    let offsetY = 0;
-
-
-    dragHandle.addEventListener(
-        "mousedown",
-        event => {
-
-            if (event.button !== 0) {
-                return;
-            }
-
-            const rect =
-                terminal.getBoundingClientRect();
-
-            terminal.style.left =
-                `${rect.left}px`;
-
-            terminal.style.top =
-                `${rect.top}px`;
-
-            terminal.style.transform =
-                "none";
-
-            offsetX =
-                event.clientX - rect.left;
-
-            offsetY =
-                event.clientY - rect.top;
-
-            dragging = true;
-
-            event.preventDefault();
-        }
-    );
-
-
-    const onMouseMove =
-        event => {
-
-            if (!dragging) {
-                return;
-            }
-
-            terminal.style.left =
-                `${event.clientX - offsetX}px`;
-
-            terminal.style.top =
-                `${event.clientY - offsetY}px`;
-        };
-
-
-    const onMouseUp =
-        () => {
-
-            dragging = false;
-        };
-
-
-    document.addEventListener(
-        "mousemove",
-        onMouseMove
-    );
-
-    document.addEventListener(
-        "mouseup",
-        onMouseUp
-    );
-
-
-    // --------------------------------------------------------
-    // Escape
-    // --------------------------------------------------------
-
-    const onKeyDown =
-        event => {
-
-            if (event.key === "Escape") {
-                closeTerminal();
-            }
-        };
-
-
-    document.addEventListener(
-        "keydown",
-        onKeyDown
-    );
-
-
-    // --------------------------------------------------------
-    // Cleanup
-    // --------------------------------------------------------
-
-    terminalCleanup = () => {
-
-        document.removeEventListener(
-            "mousemove",
-            onMouseMove
-        );
-
-        document.removeEventListener(
-            "mouseup",
-            onMouseUp
-        );
-
-        document.removeEventListener(
-            "keydown",
-            onKeyDown
-        );
-
-        terminalCleanup = null;
-    };
-
-
-    const style =
-        document.createElement("style");
-
-    style.id =
-        "palisade-omni-net-style";
-
+    style.id = "palisade-omni-net-style";
 
     style.textContent = `
-
         #palisade-omni-net-terminal {
 
             position: fixed;
@@ -426,6 +262,7 @@ async function showTerminal(state) {
             opacity: .35;
         }
 
+
         .palisade-titlebar {
 
             display: flex;
@@ -487,9 +324,7 @@ async function showTerminal(state) {
 
 
         .palisade-close:hover {
-
             color: #ddd;
-
         }
 
 
@@ -677,21 +512,16 @@ async function showTerminal(state) {
 
 
         .palisade-stable {
-
             display: none;
         }
 
 
-        .palisade-ready
-        .palisade-glitch {
-
+        .palisade-ready .palisade-glitch {
             display: none;
         }
 
 
-        .palisade-ready
-        .palisade-stable {
-
+        .palisade-ready .palisade-stable {
             display: block;
         }
 
@@ -730,86 +560,182 @@ async function showTerminal(state) {
         }
     `;
 
-
     document.head.appendChild(style);
 
+    // --------------------------------------------------------
+    // Interaction
+    // --------------------------------------------------------
+
+    const terminal =
+        root.querySelector(".palisade-terminal");
+
+    const dragHandle =
+        root.querySelector(".palisade-drag-handle");
+
+    const closeButton =
+        root.querySelector(".palisade-close");
+
 
     // --------------------------------------------------------
-    // Stable UI
+    // Close button
     // --------------------------------------------------------
 
-    const operators =
-        root.querySelector(
-            ".palisade-operators"
+    closeButton.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+            closeTerminal();
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // Drag
+    // --------------------------------------------------------
+
+    let dragging = false;
+
+    let offsetX = 0;
+    let offsetY = 0;
+
+
+    dragHandle.addEventListener(
+        "mousedown",
+        event => {
+
+            if (event.button !== 0) {
+                return;
+            }
+
+            const rect =
+                terminal.getBoundingClientRect();
+
+
+            // IMPORTANT:
+            //
+            // The terminal is initially positioned by the
+            // fullscreen flex container.
+            //
+            // Because .palisade-terminal is position: relative,
+            // assigning left/top directly would offset it from
+            // its flex-positioned location.
+            //
+            // Switch it to fixed positioning first so that
+            // rect.left/top become actual viewport coordinates.
+
+            terminal.style.position = "fixed";
+
+            terminal.style.left =
+                `${rect.left}px`;
+
+            terminal.style.top =
+                `${rect.top}px`;
+
+            terminal.style.transform =
+                "none";
+
+
+            offsetX =
+                event.clientX - rect.left;
+
+            offsetY =
+                event.clientY - rect.top;
+
+
+            dragging = true;
+
+            event.preventDefault();
+        }
+    );
+
+
+    const onMouseMove =
+        event => {
+
+            if (!dragging) {
+                return;
+            }
+
+            terminal.style.left =
+                `${event.clientX - offsetX}px`;
+
+            terminal.style.top =
+                `${event.clientY - offsetY}px`;
+        };
+
+
+    const onMouseUp =
+        () => {
+
+            dragging = false;
+        };
+
+
+    document.addEventListener(
+        "mousemove",
+        onMouseMove
+    );
+
+    document.addEventListener(
+        "mouseup",
+        onMouseUp
+    );
+
+
+    // --------------------------------------------------------
+    // Escape
+    // --------------------------------------------------------
+
+    const onKeyDown =
+        event => {
+
+            if (event.key === "Escape") {
+
+                closeTerminal();
+            }
+        };
+
+
+    document.addEventListener(
+        "keydown",
+        onKeyDown
+    );
+
+
+    // --------------------------------------------------------
+    // Cleanup
+    // --------------------------------------------------------
+
+    terminalCleanup = () => {
+
+        document.removeEventListener(
+            "mousemove",
+            onMouseMove
         );
 
-
-    operators.innerHTML =
-        state.operators
-            .map(operator => {
-
-                const active =
-                    operator.name ===
-                    state.activeOperator;
-
-                return `
-                    <div class="palisade-operator">
-
-                        <span class="palisade-active">
-                            ${active ? ">" : ""}
-                        </span>
-
-                        <span class="palisade-name">
-                            ${escapeHTML(operator.name)}
-                        </span>
-
-                        <span class="palisade-exposure">
-                            [${exposureBar(operator.exposure)}]
-                        </span>
-
-                        <span class="palisade-exposure-number">
-                            ${String(operator.exposure).padStart(2, "0")}
-                        </span>
-
-                    </div>
-                `;
-            })
-            .join("");
-
-
-    root.querySelector(
-        ".palisade-link-bar"
-    ).textContent =
-        linkBar(
-            state.link,
-            state.maxLink
+        document.removeEventListener(
+            "mouseup",
+            onMouseUp
         );
 
+        document.removeEventListener(
+            "keydown",
+            onKeyDown
+        );
 
-    root.querySelector(
-        ".palisade-link-number"
-    ).textContent =
-        `${String(state.link).padStart(2, "0")} / ${String(state.maxLink).padStart(2, "0")}`;
-
-
-    root.querySelector(
-        ".palisade-handshake"
-    ).textContent =
-        state.handshake;
+        terminalCleanup = null;
+    };
 
 
-    root.querySelector(
-        ".palisade-active-operator"
-    ).textContent =
-        state.activeOperator
-            ? `> ${state.activeOperator}`
-            : "> —";
+    // --------------------------------------------------------
+    // Initial data
+    // --------------------------------------------------------
 
-
-    root.querySelector(
-        ".palisade-message"
-    ).textContent =
-        `> PALISADE: "${state.message}"`;
+    updateTerminal(state);
 
 
     // --------------------------------------------------------
@@ -823,41 +749,73 @@ async function showTerminal(state) {
 
 
     const glitchLines = [
+
         "> PAL█SADE // OMNI-NET",
+
         "> LEGACY N░DE 07",
+
         "",
+
         "> SIGNAL ACQUISITION",
+
         "███████░░▒▓█░░",
+
         "",
+
         "> CONTINUITY ERROR",
+
         "> BIOLOGICAL PATTERN DETECTED",
+
         "> HUMAN PRESERVATION NODE",
+
         "",
+
         "▓▒░ SIGNAL CORRUPTION ░▒▓",
+
         "",
+
         "> RECONSTRUCTING...",
+
         "> RECONSTRUCTING...",
+
         "> RECONSTRUCTING...",
+
         "",
+
         "CONNECTION ............ █████░░░",
+
         "",
+
         "> DO NOT TERMINATE",
+
         "",
+
         "> PALISADE",
+
         "> PALISADE",
+
         "> PALISADE"
     ];
 
 
     const cleanLines = [
+
         "> PALISADE // OMNI-NET",
+
         "> LEGACY NODE 07",
+
         "",
+
         "> SIGNAL ACQUIRED",
+
         "> CONTINUITY CHANNEL OPEN",
+
         "",
+
         "████████████████████████",
+
         "",
+
         "> HANDSHAKE"
     ];
 
@@ -886,7 +844,6 @@ async function showTerminal(state) {
                 }
 
                 return char;
-
             })
             .join("");
     }
@@ -934,10 +891,19 @@ async function showTerminal(state) {
 
 
         if (elapsed < duration) {
-            glitchAnimationFrame = requestAnimationFrame(animate);
+
+            glitchAnimationFrame =
+                requestAnimationFrame(
+                    animate
+                );
+
         } else {
+
             glitchAnimationFrame = null;
-            root.classList.add("palisade-ready");
+
+            root.classList.add(
+                "palisade-ready"
+            );
         }
     }
 
@@ -954,19 +920,180 @@ async function showTerminal(state) {
 
 
 // ============================================================
+// UPDATE EXISTING TERMINAL
+// ============================================================
+
+function updateTerminal(state) {
+
+    const root =
+        globalThis.PALISADE_TERMINAL;
+
+    if (!root) {
+        return;
+    }
+
+    state = normalizeState(state);
+
+
+    // --------------------------------------------------------
+    // Header
+    // --------------------------------------------------------
+
+    root.querySelector(
+        ".palisade-header"
+    ).textContent =
+        state.title;
+
+
+    root.querySelector(
+        ".palisade-subheader"
+    ).textContent =
+        state.subtitle;
+
+
+    // --------------------------------------------------------
+    // Connection
+    // --------------------------------------------------------
+
+    root.querySelector(
+        ".palisade-link-bar"
+    ).textContent =
+        linkBar(
+            state.link,
+            state.maxLink
+        );
+
+
+    root.querySelector(
+        ".palisade-link-number"
+    ).textContent =
+        `${String(state.link).padStart(2, "0")} / ${String(state.maxLink).padStart(2, "0")}`;
+
+
+    root.querySelector(
+        ".palisade-handshake"
+    ).textContent =
+        state.handshake;
+
+
+    // --------------------------------------------------------
+    // Operators
+    // --------------------------------------------------------
+
+    const operators =
+        root.querySelector(
+            ".palisade-operators"
+        );
+
+
+    operators.innerHTML =
+        state.operators
+            .map(operator => {
+
+                const active =
+                    operator.name ===
+                    state.activeOperator;
+
+
+                return `
+                    <div class="palisade-operator">
+
+                        <span class="palisade-active">
+                            ${active ? ">" : ""}
+                        </span>
+
+                        <span class="palisade-name">
+                            ${escapeHTML(operator.name)}
+                        </span>
+
+                        <span class="palisade-exposure">
+                            [${exposureBar(operator.exposure)}]
+                        </span>
+
+                        <span class="palisade-exposure-number">
+                            ${String(operator.exposure).padStart(2, "0")}
+                        </span>
+
+                    </div>
+                `;
+            })
+            .join("");
+
+
+    // --------------------------------------------------------
+    // Active operator
+    // --------------------------------------------------------
+
+    root.querySelector(
+        ".palisade-active-operator"
+    ).textContent =
+        state.activeOperator
+            ? `> ${state.activeOperator}`
+            : "> —";
+
+
+    // --------------------------------------------------------
+    // Message
+    // --------------------------------------------------------
+
+    root.querySelector(
+        ".palisade-message"
+    ).textContent =
+        `> PALISADE: "${state.message}"`;
+}
+
+
+// ============================================================
+// SHOW
+// ============================================================
+
+function showTerminal(state) {
+
+    // IMPORTANT:
+    //
+    // If terminal already exists, do NOT recreate it.
+    //
+    // This means:
+    //
+    // - no new DOM
+    // - no new glitch
+    // - no repositioning
+    // - no new event listeners
+    // - existing drag position is preserved
+
+    if (globalThis.PALISADE_TERMINAL) {
+
+        updateTerminal(state);
+
+        return;
+    }
+
+
+    createTerminal(state);
+}
+
+
+// ============================================================
 // CLOSE
 // ============================================================
 
 function closeTerminal() {
 
     if (glitchAnimationFrame !== null) {
-        cancelAnimationFrame(glitchAnimationFrame);
+
+        cancelAnimationFrame(
+            glitchAnimationFrame
+        );
+
         glitchAnimationFrame = null;
     }
 
+
     if (terminalCleanup) {
+
         terminalCleanup();
     }
+
 
     if (globalThis.PALISADE_TERMINAL) {
 
@@ -982,7 +1109,9 @@ function closeTerminal() {
             "palisade-omni-net-style"
         );
 
+
     if (style) {
+
         style.remove();
     }
 }
@@ -998,7 +1127,9 @@ Hooks.once("ready", () => {
         `module.${MODULE_ID}`,
         data => {
 
-            if (!data) return;
+            if (!data) {
+                return;
+            }
 
 
             if (data.type === "show") {
@@ -1021,25 +1152,40 @@ Hooks.once("ready", () => {
     );
 
 
-    // Public API for macros / future modules.
+    // --------------------------------------------------------
+    // Public API
+    // --------------------------------------------------------
 
     globalThis.PalisadeOmniNet = {
 
         show: state => {
-            if (!game.user.isGM) return;
 
-            game.socket.emit(`module.${MODULE_ID}`, {
+            if (!game.user.isGM) {
+                return;
+            }
+
+            game.socket.emit(
+                `module.${MODULE_ID}`,
+                {
                     type: "show",
                     state: cloneState(state)
-                });
-            },
+                }
+            );
+        },
 
-            close: () => {
-            if (!game.user.isGM) return;
 
-            game.socket.emit(`module.${MODULE_ID}`, {
-                type: "close"
-            });
+        close: () => {
+
+            if (!game.user.isGM) {
+                return;
+            }
+
+            game.socket.emit(
+                `module.${MODULE_ID}`,
+                {
+                    type: "close"
+                }
+            );
         },
 
 
