@@ -1,0 +1,19 @@
+{
+  "id": "palisade-omni-net",
+  "title": "PALISADE // Omni-Net",
+  "description": "Reusable terminal UI for Foundry VTT encounters.",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Mirazent"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13.351"
+  },
+  "socket": true,
+  "esmodules": [
+    "scripts/palisade.js"
+  ]
+}
