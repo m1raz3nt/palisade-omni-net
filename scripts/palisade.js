@@ -705,7 +705,7 @@ async function showTerminal(state) {
     }
 
 
-    requestAnimationFrame(
+    glitchAnimationFrame = requestAnimationFrame(
         animate
     );
 
