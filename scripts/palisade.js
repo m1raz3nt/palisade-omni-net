@@ -4,7 +4,7 @@
  *
  * Foundry VTT 13
  */
-
+let glitchAnimationFrame = null;
 const MODULE_ID = "palisade-omni-net";
 
 
@@ -697,16 +697,10 @@ async function showTerminal(state) {
 
 
         if (elapsed < duration) {
-
-            requestAnimationFrame(
-                animate
-            );
-
+            glitchAnimationFrame = requestAnimationFrame(animate);
         } else {
-
-            root.classList.add(
-                "palisade-ready"
-            );
+            glitchAnimationFrame = null;
+            root.classList.add("palisade-ready");
         }
     }
 
@@ -726,6 +720,11 @@ async function showTerminal(state) {
 // ============================================================
 
 function closeTerminal() {
+
+    if (glitchAnimationFrame !== null) {
+        cancelAnimationFrame(glitchAnimationFrame);
+        glitchAnimationFrame = null;
+    }
 
     if (globalThis.PALISADE_TERMINAL) {
 
@@ -785,25 +784,20 @@ Hooks.once("ready", () => {
     globalThis.PalisadeOmniNet = {
 
         show: state => {
+            if (!game.user.isGM) return;
 
-            game.socket.emit(
-                `module.${MODULE_ID}`,
-                {
+            game.socket.emit(`module.${MODULE_ID}`, {
                     type: "show",
                     state: cloneState(state)
-                }
-            );
-        },
+                });
+            },
 
+            close: () => {
+            if (!game.user.isGM) return;
 
-        close: () => {
-
-            game.socket.emit(
-                `module.${MODULE_ID}`,
-                {
-                    type: "close"
-                }
-            );
+            game.socket.emit(`module.${MODULE_ID}`, {
+                type: "close"
+            });
         },
 
 
