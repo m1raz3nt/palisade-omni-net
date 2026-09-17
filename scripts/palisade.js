@@ -5,8 +5,9 @@
  * Foundry VTT 13
  */
 let glitchAnimationFrame = null;
-const MODULE_ID = "palisade-omni-net";
+let terminalCleanup = null;
 
+const MODULE_ID = "palisade-omni-net";
 
 // ============================================================
 // DEFAULT STATE
@@ -111,6 +112,18 @@ async function showTerminal(state) {
     root.innerHTML = `
         <div class="palisade-terminal">
 
+            <div class="palisade-titlebar">
+                <span class="palisade-drag-handle">
+                    PALISADE // OMNI-NET
+                </span>
+
+                <button
+                    type="button"
+                    class="palisade-close"
+                    title="Close terminal"
+                >×</button>
+            </div>
+
             <div class="palisade-glitch">
                 <pre class="palisade-glitch-text"></pre>
             </div>
@@ -166,6 +179,162 @@ async function showTerminal(state) {
     document.body.appendChild(root);
 
 
+    // --------------------------------------------------------
+    // Terminal interaction
+    // --------------------------------------------------------
+
+    const terminal =
+        root.querySelector(
+            ".palisade-terminal"
+        );
+
+    const dragHandle =
+        root.querySelector(
+            ".palisade-drag-handle"
+        );
+
+    const closeButton =
+        root.querySelector(
+            ".palisade-close"
+        );
+
+
+    // --------------------------------------------------------
+    // Close button
+    // --------------------------------------------------------
+
+    closeButton.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            closeTerminal();
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // Drag
+    // --------------------------------------------------------
+
+    let dragging = false;
+
+    let offsetX = 0;
+    let offsetY = 0;
+
+
+    dragHandle.addEventListener(
+        "mousedown",
+        event => {
+
+            if (event.button !== 0) {
+                return;
+            }
+
+            const rect =
+                terminal.getBoundingClientRect();
+
+            terminal.style.left =
+                `${rect.left}px`;
+
+            terminal.style.top =
+                `${rect.top}px`;
+
+            terminal.style.transform =
+                "none";
+
+            offsetX =
+                event.clientX - rect.left;
+
+            offsetY =
+                event.clientY - rect.top;
+
+            dragging = true;
+
+            event.preventDefault();
+        }
+    );
+
+
+    const onMouseMove =
+        event => {
+
+            if (!dragging) {
+                return;
+            }
+
+            terminal.style.left =
+                `${event.clientX - offsetX}px`;
+
+            terminal.style.top =
+                `${event.clientY - offsetY}px`;
+        };
+
+
+    const onMouseUp =
+        () => {
+
+            dragging = false;
+        };
+
+
+    document.addEventListener(
+        "mousemove",
+        onMouseMove
+    );
+
+    document.addEventListener(
+        "mouseup",
+        onMouseUp
+    );
+
+
+    // --------------------------------------------------------
+    // Escape
+    // --------------------------------------------------------
+
+    const onKeyDown =
+        event => {
+
+            if (event.key === "Escape") {
+                closeTerminal();
+            }
+        };
+
+
+    document.addEventListener(
+        "keydown",
+        onKeyDown
+    );
+
+
+    // --------------------------------------------------------
+    // Cleanup
+    // --------------------------------------------------------
+
+    terminalCleanup = () => {
+
+        document.removeEventListener(
+            "mousemove",
+            onMouseMove
+        );
+
+        document.removeEventListener(
+            "mouseup",
+            onMouseUp
+        );
+
+        document.removeEventListener(
+            "keydown",
+            onKeyDown
+        );
+
+        terminalCleanup = null;
+    };
+
+
     const style =
         document.createElement("style");
 
@@ -201,6 +370,8 @@ async function showTerminal(state) {
         .palisade-terminal {
 
             position: relative;
+
+            pointer-events: auto;
 
             width: 650px;
 
@@ -253,6 +424,72 @@ async function showTerminal(state) {
                 );
 
             opacity: .35;
+        }
+
+        .palisade-titlebar {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            height: 24px;
+
+            margin:
+                -16px
+                -16px
+                14px
+                -16px;
+
+            color: #555;
+
+            font-size: 9px;
+
+            letter-spacing: 2px;
+
+            user-select: none;
+        }
+
+
+        .palisade-drag-handle {
+
+            flex: 1;
+
+            cursor: move;
+
+            user-select: none;
+        }
+
+
+        .palisade-close {
+
+            width: 24px;
+
+            height: 24px;
+
+            padding: 0;
+
+            border: 0;
+
+            background: transparent;
+
+            color: #555;
+
+            font-family: monospace;
+
+            font-size: 18px;
+
+            line-height: 20px;
+
+            cursor: pointer;
+        }
+
+
+        .palisade-close:hover {
+
+            color: #ddd;
+
         }
 
 
@@ -705,9 +942,10 @@ async function showTerminal(state) {
     }
 
 
-    glitchAnimationFrame = requestAnimationFrame(
-        animate
-    );
+    glitchAnimationFrame =
+        requestAnimationFrame(
+            animate
+        );
 
 
     globalThis.PALISADE_TERMINAL =
@@ -724,6 +962,10 @@ function closeTerminal() {
     if (glitchAnimationFrame !== null) {
         cancelAnimationFrame(glitchAnimationFrame);
         glitchAnimationFrame = null;
+    }
+
+    if (terminalCleanup) {
+        terminalCleanup();
     }
 
     if (globalThis.PALISADE_TERMINAL) {
